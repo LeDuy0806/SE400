@@ -1,0 +1,20 @@
+# Chỉ thị chung cho tất cả các bot
+User-agent: *
+
+# Cho phép bot crawl tất cả các trang (đảm bảo bot có thể truy cập các phần quan trọng của website)
+Allow: /
+
+# Không yêu cầu hạn chế cho bot nào
+Disallow: 
+
+# Nếu có các thư mục nhạy cảm không muốn bot truy cập, có thể thêm vào đây
+# Ví dụ: Không cho phép bot vào thư mục admin, private
+Disallow: /admin/
+Disallow: /private/
+
+# Nếu có các file tạm hoặc cache không cần thiết, bạn có thể thêm vào:
+Disallow: /cache/
+Disallow: /temp/
+
+# Sitemap: Cung cấp đường dẫn đến sitemap của bạn để giúp các bot tìm thấy tất cả các trang dễ dàng hơn
+Sitemap: https://yourdomain.com/sitemap.xml
