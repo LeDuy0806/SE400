@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todolist-frontend-deployment
+  labels:
+    app: todolist-frontend
+  namespace: todolist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todolist-frontend
+  template:
+    metadata:
+      labels:
+        app: todolist-frontend
+    spec:
+      containers:
+        - name: todolist-frontend
+          image: mixiyady/todolist-frontend:uat_v1_27ea77fd
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+      imagePullSecrets:
+        - name: auth-registry
+      hostAliases:
+        - ip: "192.168.239.100"
+          hostnames:
+          - "gitlab.mixiyady.vn"
+

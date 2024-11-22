@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todolist-backend-deployment
+  labels:
+    app: todolist-backend
+  namespace: todolist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todolist-backend
+  template:
+    metadata:
+      labels:
+        app: todolist-backend
+    spec:
+      containers:
+        - name: todolist-backend
+          image: mixiyady/todolist-backend:uat_v6_48024a95
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  key: DB_URL
+                  name: database-connection-secret
+      imagePullSecrets:
+        - name: auth-registry
+      hostAliases:
+        - ip: "192.168.239.100"
+          hostnames:
+          - "gitlab.mixiyady.vn"
+

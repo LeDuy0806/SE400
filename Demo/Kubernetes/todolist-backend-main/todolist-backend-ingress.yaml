@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todolist-backend-ingress
+  namespace: todolist
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api-todolist.mixiyady.vn
+      http:
+        paths:
+          - backend:
+              service:
+                name: todolist-backend-service
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix
