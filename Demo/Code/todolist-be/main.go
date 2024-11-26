@@ -4,34 +4,19 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 	"todo-list/middleware"
 	ginItem "todo-list/modules/item/transport/gin"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-
-	// Set gin mode to release if GIN_MODE is set to release in environment variables
-	ginMode := os.Getenv("GIN_MODE")
-	if ginMode == "release" {
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		gin.SetMode(gin.DebugMode)
-	}
-
-	r := gin.New()
+	r := gin.Default()
 
 	r.Use(gin.Logger(), middleware.Recovery())
 
@@ -45,11 +30,9 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	dbConfig := LoadDBConfig()
+	// dsn := os.Getenv("DB_URL")
+	dsn := "root:123@tcp(192.168.239.100:3306)/todo_db?charset=utf8mb4&parseTime=True&loc=Local"
 
-	dsn := dbConfig.ConnectionString()
-
-	fmt.Println(dsn)
 	// Set up logger
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags), // Log writer
@@ -89,39 +72,7 @@ func main() {
 		})
 	})
 
-	port := os.Getenv("PORT")
-
-	portNum, err := strconv.Atoi(port)
-	if err != nil {
-		portNum = 8080
-	}
-
-	if err := r.Run(fmt.Sprintf(":%d", portNum)); err != nil {
+	if err := r.Run(fmt.Sprintf(":8080")); err != nil {
 		return
 	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-}
-
-type DBConfig struct {
-	User     string
-	Password string
-	Host     string
-	Port     string
-	Name     string
-}
-
-// LoadDBConfig Function to load database configuration from environment variables
-func LoadDBConfig() DBConfig {
-	return DBConfig{
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Host:     os.Getenv("DB_HOST"),
-		Port:     os.Getenv("DB_PORT"),
-		Name:     os.Getenv("DB_NAME"),
-	}
-}
-
-// ConnectionString Function to generate connection string for database
-func (db DBConfig) ConnectionString() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		db.User, db.Password, db.Host, db.Port, db.Name)
 }

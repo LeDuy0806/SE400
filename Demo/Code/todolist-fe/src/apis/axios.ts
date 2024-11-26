@@ -1,8 +1,10 @@
 import axios, { AxiosError } from "axios"
 import { ErrorResponse } from "./response.type"
 
+const API_URL = "__API_URL__"
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_ENDPOINT,
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
     Encrypted: "true"

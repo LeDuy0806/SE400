@@ -15,10 +15,13 @@ module.exports = {
     // Disable rules that eslint conflict with prettier.
     // Overwrite above config
     "eslint-config-prettier",
-    "prettier"
+    "prettier",
+    "plugin:security/recommended",
+    "plugin:no-unsanitized/DOM",
+    "plugin:xss/recommended"
   ],
   parser: "@typescript-eslint/parser",
-  plugins: ["prettier", "unused-imports", "react-refresh"],
+  plugins: ["prettier", "unused-imports", "react-refresh", "security", "no-unsanitized", "xss" ],
   settings: {
     react: {
       version: "detect"
@@ -85,6 +88,11 @@ module.exports = {
         organizeImportsSkipDestructiveCodeActions: true,
         plugins: ["prettier-plugin-organize-imports", "prettier-plugin-tailwindcss"]
       }
-    ]
+    ],
+    "security/detect-object-injection": "warn",
+    "security/detect-eval-with-expression": "warn",
+    "security/detect-unsafe-regex": "warn",
+    "no-unsanitized/method": "error",
+    "xss/no-mixed-html": "error",
   }
 }
