@@ -1,0 +1,40 @@
+build production:
+    stage: build
+    variables:
+        GIT_STRATEGY: none
+    before_script:
+        - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} --password-stdin
+    script:
+        - docker pull $LATEST_STAGING_IMAGE
+        - docker tag $LATEST_STAGING_IMAGE ${IMAGE_NAME}:${PROD_IMAGE_TAG}
+        - docker push ${IMAGE_NAME}:${PROD_IMAGE_TAG}
+        - echo "Build image production completed"
+    after_script:
+        - docker logout
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_TAG'
+
+deploy production:
+    stage: deploy
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - git clone http://oauth2:${MAINFEST_PROJECT_ACCESS_TOKEN}@${CI_SERVER_HOST}/manifest/todolist-backend.git || true
+        - cd todolist-backend
+        - git checkout -b ${PROD_IMAGE_TAG}
+        - | 
+            sed -i "s|image: .*|image: ${IMAGE_NAME}:${PROD_IMAGE_TAG}|g" ./todolist-backend-deployment.yaml
+        - git config --local user.email "ci-bot@mixiyady.com"
+        - git config --local user.name "CI Bot"
+        - git add todolist-backend-deployment.yaml
+        - git commit -m "Update image version to ${PROD_IMAGE_TAG}"
+        - git push origin ${PROD_IMAGE_TAG} || true
+        - cd ..
+        - rm -rf todolist-backend
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_TAG'
+

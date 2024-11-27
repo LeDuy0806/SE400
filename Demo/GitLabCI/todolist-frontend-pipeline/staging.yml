@@ -1,0 +1,74 @@
+build staging:
+    stage: build
+    variables:
+        CACHE_IMAGE_TAG: 'merge_request_staging'
+    before_script:
+        - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} --password-stdin
+    script:
+        - docker pull ${IMAGE_NAME}:${CACHE_IMAGE_TAG} || true
+        - docker build --cache-from ${IMAGE_NAME}:${CACHE_IMAGE_TAG} -t ${IMAGE_NAME}:${STAGING_IMAGE_TAG} .
+        - docker push ${IMAGE_NAME}:${STAGING_IMAGE_TAG}
+        - |
+            curl --request PUT --header "PRIVATE-TOKEN: $CI_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "{\"key\": \"LATEST_STAGING_IMAGE\", \"value\": \"${IMAGE_NAME}:${STAGING_IMAGE_TAG}\"}" \
+            "$CI_API_V4_URL/projects/$CI_PROJECT_ID/variables/LATEST_STAGING_IMAGE"
+        - echo "Build and push image completed"
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "staging"'
+
+deploy staging:
+    stage: deploy
+    variables:
+        GIT_STRATEGY: none
+    before_script:
+        - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} --password-stdin
+    script:
+        - docker rm -f $CI_PROJECT_NAME || true
+        - docker run --name $CI_PROJECT_NAME -e API_URL="${API_URL_STAGING}" -dp 3000:80 ${IMAGE_NAME}:${STAGING_IMAGE_TAG}
+        - echo "Deploy completed"
+    after_script:
+        - docker logout
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "staging"'
+
+arachni scan website:
+    stage: security scan website
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni --output-verbose --scope-include-subdomains $FRONTEND_ADDRESS --report-save-path=/tmp/$ARACHNI_WEBSITE_REPORT.afr > /dev/null 2>&1
+        - docker run --rm -v /tmp/:/tmp/ devopseduvn/arachni:v1.4-0.5.10 bin/arachni_reporter /tmp/$ARACHNI_WEBSITE_REPORT.afr --reporter=html:outfile=/tmp/$ARACHNI_WEBSITE_REPORT.html.zip
+        - sudo chmod 777 /tmp/$ARACHNI_WEBSITE_REPORT.html.zip
+        - cp /tmp/$ARACHNI_WEBSITE_REPORT.html.zip .
+    after_script:
+        - sudo chown -R gitlab-runner $(pwd)
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "staging"'
+    artifacts:
+        paths:
+        - $ARACHNI_WEBSITE_REPORT.html.zip
+        expire_in: 1 day
+
+performance testing:
+    stage: performance testing
+    script:
+        - chmod -R 777 ./performance_testing_script/
+        - docker run --rm -v $(pwd)/performance_testing_script:/performance_testing_script -e FRONTEND_ADDRESS=$FRONTEND_ADDRESS grafana/k6 run /performance_testing_script/smoke-test.js
+        - mv ./performance_testing_script/summary.html $(pwd)/$K6_PERFORMANCE_TEST_REPORT.html
+    after_script:
+        - sudo chown -R gitlab-runner $(pwd)
+    tags:
+        - todolist-runner-build-shell
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "staging"'
+    artifacts:
+        paths:
+        - $K6_PERFORMACE_TEST_REPORT.html
+        expire_in: 1 day

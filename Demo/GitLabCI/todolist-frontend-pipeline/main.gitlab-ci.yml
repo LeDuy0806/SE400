@@ -1,0 +1,16 @@
+include:
+    - local: 'variables.yml'
+    - local: 'merge-request.yml'
+    - local: 'production.yml'
+    - local: 'staging.yml'
+    - local: 'notification.yml'
+
+stages:
+  - test source code
+  - build
+  - security scan image
+  - deploy
+  - security scan website
+  - performance testing
+  - send report
+

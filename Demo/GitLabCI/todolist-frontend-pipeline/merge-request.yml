@@ -1,0 +1,69 @@
+lint:
+    stage: test source code
+    script:
+        - yarn install --lockfile-version
+        - yarn lint -f html > $ESLINT_REPORT.html || true
+        - rm -rf node_modules
+    after_script:
+        - sudo chown -R gitlab-runner $(pwd)
+    tags:
+        - todolist-runner-dev-shell
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME != "main"
+    artifacts:
+        paths:
+            - $ESLINT_REPORT.html
+        expire_in: 1 day
+
+snyk scan:
+    stage: test source code
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - docker run --rm -v $(pwd):/app -e SNYK_AUTH_TOKEN=$SNYK_TOKEN -e OUTPUT_FILENAME=$SNYKSCAN_REPORT mixiyady/snyk:v1.1293.1
+    after_script:
+        - sudo chown -R gitlab-runner $(pwd)
+    tags:
+        - todolist-runner-dev-shell
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME != "main"
+    artifacts:
+        paths:
+            - $SNYKSCAN_REPORT.html
+        expire_in: 1 day
+
+build merge request:
+    stage: build
+    before_script:
+        - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} --password-stdin
+    script:
+        - docker build --cache-from ${IMAGE_NAME}:${MR_IMAGE_TAG} -t  ${IMAGE_NAME}:${MR_IMAGE_TAG} .
+        - docker push ${IMAGE_NAME}:${MR_IMAGE_TAG}
+        - echo "Build completed"
+    after_script:
+        - docker logout
+    tags:
+        - todolist-runner-dev-shell
+    rules:
+        - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "staging"
+
+trivy scan image:
+    stage: security scan image
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - docker run --rm -v $(pwd):/${CI_PROJECT_NAME} -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy clean --all
+        - docker run --rm -v $(pwd):/${CI_PROJECT_NAME} -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --timeout 5m --format template --template "@contrib/html.tpl" --output /${CI_PROJECT_NAME}/${TRIVY_IMAGE_REPORT}.html ${IMAGE_NAME}:${MR_IMAGE_TAG}
+        - echo "Trivy scan image completed"
+    after_script:
+        - sudo chown -R gitlab-runner $(pwd)
+    tags:
+        - todolist-runner-dev-shell
+    rules:
+        - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "staging"
+    dependencies:
+        - build merge request
+    artifacts:
+        paths:
+            - ${TRIVY_IMAGE_REPORT}.html
+        expire_in: 1 day
