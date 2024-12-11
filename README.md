@@ -7,4 +7,4 @@
 ![Image of Infrastructure Demo Diagram](./assets/Infrastructure_Demo_Diagram.png)
 
 **CI/CD Pipeline Flow Diagram:**
-![Image of CI/CD Pipeline Devsecops Diagram](./assets/CICD_Pipeline_Flow_Diagram.png)
+![Image of CI/CD Pipeline Devsecops Diagram](./assets/CICD_Pipeline_Flow_Git_Flow_Diagram.png)
